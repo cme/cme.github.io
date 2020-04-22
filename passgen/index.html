@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>passgen</title>
+    
+    <!-- Bootstrap -->
+    <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    
+  </head>
+  <body>
+    <div class="container">
+      
+      
+      <!-- jQuery, bootstrap,  sha256, and passgen code. -->
+      <script src="jquery-2.2.4.min.js"></script>
+      <script src="bootstrap/js/bootstrap.min.js"></script>
+      <script src="crypto/sha256.js"></script>
+      <script src="passgen.js"></script>
+      
+      <ul class="nav nav-tabs">
+        <li class="active">
+          <a data-toggle="tab" href="#passgen_home">
+            Passgen
+          </a>
+        </li>
+        <li><a data-toggle="tab" href="#edit">Edit</a></li>
+      </ul>
+      
+      <div class="tab-content">
+        <div id="passgen_home" class="tab-pane active">
+          <form id="passform" class="form-horizontal">
+            <div class="form-group">
+              <label class="col-sm-2 control-label">salt</label>
+              <div class="col-sm-10">
+                <input id="input_domain" type="text" class="form-control"
+                       />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-sm-2 control-label">password</label>
+              <div class="col-sm-10">
+                <input id="input_password" type="password"
+                       class="form-control" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-sm-2 control-label">pepper</label>
+              <div class="col-sm-10">
+                <input id="input_pepper" type="text" class="form-control" />
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="col-sm-1 col-sm-offset-2">
+                <input type="submit" class="btn-primary" value="Update" />
+                <input type="button" id="updateAndCopy"
+                       class="btn-default" value="Update & copy" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-sm-2 control-label">generated</label>
+              <div class="col-sm-10">
+                <input id="output_password" type="text" class="form-control"
+                       style="font-family: monospace;"/>
+              </div>
+            </div>
+          </form>
+          
+          <div class="well">
+            Bookmarklet: <a href="" id="bookmarklet">passgen</a>
+          </div>
+        </div><!-- home -->
+        
+        <div id="edit" class="tab-pane">
+          <div class="form-group">
+            <label for="editor">Salt mappings</label>
+            <textarea class="form-control rounded-0"
+                      id="editor" rows="10"></textarea>
+          </div>
+          <input type="submit" class="btn-primary" value="Save"
+                 id="editor_save" />
+        </div>
+      </div><!-- tab-content -->
+      
+    <script><!--
+                Passgen.init();
+                // --></script>
+
+  </body>
+</html>
+
