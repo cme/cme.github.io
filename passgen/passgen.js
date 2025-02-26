@@ -297,6 +297,7 @@ Passgen.init = function() {
 
         // Set value of editor.
         let editor_value = window.localStorage.getItem('salt_pepper_map');
+        editor_value = Passgen.cleanSaltPepperMap(editor_value);
         document.getElementById('editor').value = editor_value;
 
         $('#editor_save').on('click', function(event) {
