@@ -90,7 +90,7 @@ Passgen.generateLimitedPassword = function(domain, pass, pepper, disallow) {
     let rounds = 0;
     let p = '';
     for (;;) {
-        pass = Passgen.generatePassword(domaiy, pass, pepper + p);
+        pass = Passgen.generatePassword(domain, pass, pepper + p);
         rounds++;
         p =  '/' + rounds.toString();
         let ok = true;
@@ -106,6 +106,7 @@ Passgen.generateLimitedPassword = function(domain, pass, pepper, disallow) {
     }
 }
 
+// Find a pepper to generate a password with a specific prefix
 Passgen.findMatch = function(domain, pass, match) {
     var i = 0;
     var gen;
@@ -191,6 +192,21 @@ Passgen.getSearchKeys = function() {
     return undefined;
 };
 
+// Clean up the salt/pepper map
+Passgen.cleanSaltPepperMap = function(map) {
+    let m = {};
+    for (let line of map.split("\n")) {
+        match = RegExp("^([^=]*)=(.+)$", "m").exec(line);
+        if (match)
+            m[match[1]] = line;
+    }
+    let l = [];
+    for (let key in m) {
+        l.push(m[key]);
+    }
+    return l.toSorted().join("\n");
+};
+
 Passgen.getPepper = function(salt) {
     let text = window.localStorage.getItem("salt_pepper_map");
     let re = RegExp("^"+salt+"=(.*)$", "m");
@@ -210,6 +226,7 @@ Passgen.setPepper = function(salt, pepper) {
     } else {
         text = text + "\n" + salt + "=" + pepper + "\n"
     }
+    text = Passgen.cleanSaltPepperMap(text);
     // Update storage and editor textarea
     window.localStorage.setItem("salt_pepper_map", text);
     document.getElementById('editor').value = text;
