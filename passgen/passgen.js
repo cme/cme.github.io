@@ -189,7 +189,7 @@ Passgen.updatePass = function(copy) {
     var p = Passgen.generatePassword(domain, pass.value, pepper, length, disallow);
     Passgen.updateColour(pass);
     Passgen.setMapValue(domain, pepper);
-    Passgen.setMapValue(domain + '/length', length);
+    Passgen.setMapValue(domain + '/length', length != 10 ? length : '');
     Passgen.setMapValue(domain + '/disallow', disallow);
     output.value = p;
     output.select();
