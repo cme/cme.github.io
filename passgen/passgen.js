@@ -7,10 +7,20 @@
 // * encrypt password with a PIN and keep in localStorage
 //   -- forget password after some number of tries
 
+// Handling invalid characters etc.
+//
+// Where services forbid some characters in passwords, users often
+// don't encounter them until they attempt to change a password to
+// something new which happens to have that character. Because of
+// this, a change in any forbidden character list that the user passes
+// must not affect the password generated from a gives salt and
+// pepper, unless that generated password would have one of the
+// forbidden characters in it.
+
 var Passgen = {};
 
 // Calculate password from seed inputs.
-Passgen.generatePassword = function(domain, pass, pepper, classes) {
+Passgen.generatePassword = function(domain, pass, pepper, len = 10, disallow="") {
     
     if (domain == '' || pass == '') {
         // Don't provide a 'default' password in case it gets
@@ -18,22 +28,23 @@ Passgen.generatePassword = function(domain, pass, pepper, classes) {
         return '';
     }
 
-    var len = 10;               // Password length
     var debug = false;
 
     // Allowed characters. No visually ambiguous characters, as
     // they're just a pain and we lose little by removing them.
-    if (!classes) {
-        classes = [ "ABCDEFGHJKLMNPQRSTUVWXYZ",
+    let classes = [ "ABCDEFGHJKLMNPQRSTUVWXYZ",
                     "abcdefghijkmnopqrstuvwxyz",
                     "23456789",
                     "-_:/*!$."
                   ];
-    }
+
     var allowed = '';
     for (var i in classes) {
         allowed += classes[i];
     }
+
+    if (len <= classes.length)
+        return '';
 
     var iteration = 0;
 
@@ -45,18 +56,28 @@ Passgen.generatePassword = function(domain, pass, pepper, classes) {
             seasoned = domain + '//' + pass;
         if (iteration != 0)
             seasoned += '//' + iteration;
-        var hash = Sha256.hash(seasoned);
+        let hash = Sha256.hash(seasoned);
         var newpass = "";
         for (var i = 0; i < len; i++) {
-            var c = parseInt(hash.substr(0, 2), 16);
-            newpass += allowed.charAt(c % allowed.length);
+            console.log("Add char...");
+            let c = parseInt(hash.substr(0, 2), 16);
+            let newChar = allowed.charAt(c % allowed.length);
+            if (disallow.indexOf(newChar) != -1) {
+                let offset = 1;
+                do {
+                    newChar = allowed.charAt((c^offset) % allowed.length);
+                    offset++;
+                } while (disallow.indexOf(newChar) != -1);
+            }
+            newpass += newChar;
             hash = hash.substr(2);
         }
 
         // Validate password contains at least one from each class.
         var class_ok = false;
         if (debug)
-            console.log("Validate password '" + newpass + "' iteration " + iteration);
+            console.log("Validate password '" + newpass + "' iteration "
+                        + iteration);
         for (var i in classes) {
             class_ok = false;
             for (var c in newpass) {
@@ -156,11 +177,20 @@ Passgen.updatePass = function(copy) {
     var output = document.getElementById('output_password');
     var domain = document.getElementById('input_domain').value;
     var pepper = document.getElementById('input_pepper').value;
+    var length = parseInt(document.getElementById('input_length').value);
+    var disallow = document.getElementById('input_disallow').value;
+
+    if (!length) length = 10;
+    if (!disallow) disallow = '';
+
+    console.log('length: '+length+' disallow: '+disallow);
     
     var pass = document.getElementById('input_password');
-    var p = Passgen.generatePassword(domain, pass.value, pepper);
+    var p = Passgen.generatePassword(domain, pass.value, pepper, length, disallow);
     Passgen.updateColour(pass);
-    Passgen.setPepper(domain, pepper);
+    Passgen.setMapValue(domain, pepper);
+    Passgen.setMapValue(domain + '/length', length);
+    Passgen.setMapValue(domain + '/disallow', disallow);
     output.value = p;
     output.select();
     if (copy) {
@@ -207,7 +237,7 @@ Passgen.cleanSaltPepperMap = function(map) {
     return l.toSorted().join("\n");
 };
 
-Passgen.getPepper = function(salt) {
+Passgen.getMapValue = function(salt) {
     let text = window.localStorage.getItem("salt_pepper_map");
     let re = RegExp("^"+salt+"=(.*)$", "m");
     match = re.exec(text);
@@ -217,7 +247,7 @@ Passgen.getPepper = function(salt) {
     return undefined;
 }
 
-Passgen.setPepper = function(salt, pepper) {
+Passgen.setMapValue = function(salt, pepper) {
     let text = window.localStorage.getItem("salt_pepper_map");
     let re = RegExp("^"+salt+"=(.*)$", "m");
     match = re.exec(text);
@@ -267,9 +297,23 @@ Passgen.init = function() {
                 t.value = v;
 
             // Also look up an appropriate pepper.
-            let p = Passgen.getPepper(v);
+            let p = Passgen.getMapValue(v);
             if (p) {
                 document.getElementById('input_pepper').value = p;
+            } else {
+                document.getElementById('input_pepper').value = '';
+            }
+            let l = Passgen.getMapValue(v + '/length');
+            if (l) {
+                document.getElementById('input_length').value = l;
+            } else {
+                document.getElementById('input_length').value = '';
+            }
+            let d = Passgen.getMapValue(v + '/disallow');
+            if (d) {
+                document.getElementById('input_disallow').value = d;
+            } else {
+                document.getElementById('input_disallow').value = '';
             }
         });
 
@@ -282,10 +326,25 @@ Passgen.init = function() {
             if (keys && keys["pepper_"+domain]) {
                 document.getElementById('input_pepper').value
                     = keys["pepper_"+domain];
+                // XXX do the same thing for length and disallow
             }
-            let p = Passgen.getPepper(v);
+            let p = Passgen.getMapValue(v);
             if (p) {
                 document.getElementById('input_pepper').value = p;
+            } else {
+                document.getElementById('input_pepper').value = '';
+            }
+            let l = Passgen.getMapValue(v + '/length');
+            if (l) {
+                document.getElementById('input_length').value = l;
+            } else {
+                document.getElementById('input_length').value = '';
+            }
+            let d = Passgen.getMapValue(v = '/disallow');
+            if (d) {
+                document.getElementById('input_disallow').value = d;
+            } else {
+                document.getElementById('input_disallow').value = '';
             }
             // Select input_password ready to start typing
             document.getElementById('input_password').select();
@@ -297,7 +356,8 @@ Passgen.init = function() {
 
         // Set value of editor.
         let editor_value = window.localStorage.getItem('salt_pepper_map');
-        editor_value = Passgen.cleanSaltPepperMap(editor_value);
+        if (editor_value)
+            editor_value = Passgen.cleanSaltPepperMap(editor_value);
         document.getElementById('editor').value = editor_value;
 
         $('#editor_save').on('click', function(event) {
@@ -317,9 +377,54 @@ Passgen.init = function() {
 
 }
 
+Passgen.test = function() {
+
+    let pws = [
+        "_BggWPsL5j",
+        "c934J4$xR:",
+        "ds6ZpAoiD:",
+        "p*rz3D6xCC",
+        "xC7/8saN!o",
+        ":5s5sq:y4Q",
+        "hbbo9tftS-",
+        "5_*DmcTscJ",
+        "vAp.xn5bVv",
+        "twTGYkd2_k"
+    ];
+    let fails = 0;
+    console.log("=== Simple test ===");
+    for (i in pws) {
+        let pw = Passgen.generatePassword("salt", "pass", ""+i, 10);
+        if (pw != pws[i]) {
+            fails++;
+            console.log("FAIL: " + i + " -> " + pw + " (" + pws[i] + ")");
+        } else {
+            console.log("PASS: " + i + " -> " + pw + " (" + pws[i] + ")");
+        }
+    }
+
+    console.log("=== Test disallowed chars ===");
+    for (i in pws) {
+        let pw = Passgen.generatePassword("salt", "pass", ""+i, 10, "*");
+        if (pw != pws[i]) {
+            fails++;
+            console.log("FAIL: " + i + " -> " + pw + " (" + pws[i] + ")");
+        } else {
+            console.log("PASS: " + i + " -> " + pw + " (" + pws[i] + ")");
+        }
+    }
+
+    if (fails) {
+        console.log("=== FAIL ===");
+    }
+};
+
 try {
     exports.generatePassword = Passgen.generatePassword;
     exports.findMatch = Passgen.findMatch;
     exports.generateLimitedPassword = Passgen.generateLimitedPassword;
 } catch(e) {
+
 }
+
+Passgen.test();
